@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-project(msp VERSION 3.4.0 LANGUAGES CXX)
+project(msp)
+set(CMAKE_CXX_STANDARD 20)
 
 set(PROJECT_DESCRIPTION "Implementation of the MultiWii Serial Protocol (MSP) for MultiWii and Cleanflight flight controller")
 
@@ -7,18 +8,13 @@ find_package(catkin_simple REQUIRED)
 
 catkin_simple(ALL_DEPS_REQUIRED)
 
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 NEW)
-endif()
+find_package(Eigen3 3.3.4 QUIET)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic -Werror)
-elseif(MSVC)
-  add_compile_options(/W4 /WX)
-endif()
+# if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#   add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+# elseif(MSVC)
+#   add_compile_options(/W4 /WX)
+# endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} \
     -fsanitize=address \
@@ -57,26 +53,42 @@ OPTION(BUILD_TESTS "Build Library with tests" OFF)
 
 find_package(Threads)
 
-set(MSP_SOURCE_DIR src)
+# set(MSP_SOURCE_DIR src)
 # set(MSP_INCLUDE_DIR include/msp)
 # include_directories(${MSP_INCLUDE_DIR})
 
 catkin_package(INCLUDE_DIRS include)
 
 include_directories(include
-                    ${catkin_INCLUDE_DIRS})
+                    ${catkin_INCLUDE_DIRS}
+                    ${EIGEN3_INCLUDE_DIRS})
 
 ################################################################################
 ### libraries
 
 # client library
-cs_add_library(mspclient ${MSP_SOURCE_DIR}/Client.cpp ${MSP_SOURCE_DIR}/PeriodicTimer.cpp)
+cs_add_library(mspclient src/Client.cpp src/PeriodicTimer.cpp)
 target_link_libraries(mspclient ${CMAKE_THREAD_LIBS_INIT} ASIO::ASIO)
 
 # high-level API
-cs_add_library(msp_fcu ${MSP_SOURCE_DIR}/FlightController.cpp)
+cs_add_library(msp_fcu src/FlightController.cpp)
 target_link_libraries(msp_fcu mspclient)
 
+
+### executables
+
+cs_add_executable(betaflight_node src/betaflight_node.cpp)
+cs_add_executable(motor_test src/motor_test.cpp)
+
+target_link_libraries(betaflight_node
+    ${catkin_LIBRARIES} -lstdc++fs
+    mspclient
+)
+
+target_link_libraries(motor_test
+    ${catkin_LIBRARIES} -lstdc++fs
+    mspclient
+)
 
 ################################################################################
 ### examples / tests
