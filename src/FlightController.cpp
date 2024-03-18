@@ -1,4 +1,4 @@
-#include "FlightController.hpp"
+#include "msp/FlightController.hpp"
 #include <iostream>
 
 namespace fcu {
@@ -58,7 +58,7 @@ bool FlightController::connect(const std::string &device, const size_t baudrate,
     capabilities_ = ident.capabilities;
 
     // get boxes
-    //initBoxes();
+    initBoxes();
 
     // determine channel mapping
     if(getFwVariant() == msp::FirmwareVariant::MWII) {

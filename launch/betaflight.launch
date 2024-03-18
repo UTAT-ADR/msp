@@ -1,0 +1,8 @@
+<launch>
+    <node name="bf" pkg="multiwii" type="betaflight_node" output="screen">
+        <param name="device" value="/dev/ttyACM0"/>
+        <param name="command_topic" value="/motor_command"/>
+        <param name="thrust_map_file" value="/home/nvidia/workspaces/agi_ws/src/msp/thrust_map.csv"/>
+        <param name="max_rate" value="586"/>
+    </node>
+</launch>

@@ -1,21 +1,20 @@
 cmake_minimum_required(VERSION 3.5)
-project(msp VERSION 3.4.0 LANGUAGES CXX)
+project(msp)
+set(CMAKE_CXX_STANDARD 20)
 
 set(PROJECT_DESCRIPTION "Implementation of the MultiWii Serial Protocol (MSP) for MultiWii and Cleanflight flight controller")
 
+find_package(catkin_simple REQUIRED)
 
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 NEW)
-endif()
+catkin_simple(ALL_DEPS_REQUIRED)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic -Werror)
-elseif(MSVC)
-  add_compile_options(/W4 /WX)
-endif()
+find_package(Eigen3 3.3.4 QUIET)
+
+# if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#   add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+# elseif(MSVC)
+#   add_compile_options(/W4 /WX)
+# endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} \
     -fsanitize=address \
@@ -49,27 +48,47 @@ add_definitions(-DASIO_HAS_CSTDINT)
 add_definitions(-DASIO_HAS_STD_SHARED_PTR)
 add_definitions(-DASIO_HAS_STD_TYPE_TRAITS)
 
-OPTION(BUILD_EXAMPLES "Build Library with examples" ON)
+OPTION(BUILD_EXAMPLES "Build Library with examples" OFF)
 OPTION(BUILD_TESTS "Build Library with tests" OFF)
 
 find_package(Threads)
 
-set(MSP_SOURCE_DIR src)
-set(MSP_INCLUDE_DIR inc/msp)
-include_directories(${MSP_INCLUDE_DIR})
+# set(MSP_SOURCE_DIR src)
+# set(MSP_INCLUDE_DIR include/msp)
+# include_directories(${MSP_INCLUDE_DIR})
 
+catkin_package(INCLUDE_DIRS include)
+
+include_directories(include
+                    ${catkin_INCLUDE_DIRS}
+                    ${EIGEN3_INCLUDE_DIRS})
 
 ################################################################################
 ### libraries
 
 # client library
-add_library(mspclient ${MSP_SOURCE_DIR}/Client.cpp ${MSP_SOURCE_DIR}/PeriodicTimer.cpp)
+cs_add_library(mspclient src/Client.cpp src/PeriodicTimer.cpp)
 target_link_libraries(mspclient ${CMAKE_THREAD_LIBS_INIT} ASIO::ASIO)
 
 # high-level API
-add_library(msp_fcu ${MSP_SOURCE_DIR}/FlightController.cpp)
+cs_add_library(msp_fcu src/FlightController.cpp)
 target_link_libraries(msp_fcu mspclient)
 
+
+### executables
+
+cs_add_executable(betaflight_node src/betaflight_node.cpp)
+cs_add_executable(motor_test src/motor_test.cpp)
+
+target_link_libraries(betaflight_node
+    ${catkin_LIBRARIES} -lstdc++fs
+    mspclient
+)
+
+target_link_libraries(motor_test
+    ${catkin_LIBRARIES} -lstdc++fs
+    mspclient
+)
 
 ################################################################################
 ### examples / tests
@@ -77,34 +96,32 @@ target_link_libraries(msp_fcu mspclient)
 if(BUILD_EXAMPLES)
 
     # testing publish/subscribe
-    add_executable(fcu_test examples/fcu_test.cpp)
+    cs_add_executable(fcu_test examples/fcu_test.cpp)
     target_link_libraries(fcu_test msp_fcu)
 
     # test setting motors directly
-    add_executable(fcu_motors examples/fcu_motor_test.cpp)
+    cs_add_executable(fcu_motors examples/fcu_motor_test.cpp)
     target_link_libraries(fcu_motors msp_fcu)
 
     # subscribing with custom type
-    add_executable(fcu_custom_type examples/fcu_custom_type.cpp)
+    cs_add_executable(fcu_custom_type examples/fcu_custom_type.cpp)
     target_link_libraries(fcu_custom_type msp_fcu)
 
     # client test for asynchronous callbacks
-    add_executable(client_async_test examples/client_async_test.cpp)
+    cs_add_executable(client_async_test examples/client_async_test.cpp)
     target_link_libraries(client_async_test mspclient)
 
     # client test for blocking read
-    add_executable(client_read_test examples/client_read_test.cpp)
+    cs_add_executable(client_read_test examples/client_read_test.cpp)
     target_link_libraries(client_read_test mspclient)
 
 endif()
 
 ################################################################################
 ### installation
-
-install(TARGETS msp_fcu mspclient
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-install(DIRECTORY ${MSP_INCLUDE_DIR} DESTINATION include/ FILES_MATCHING PATTERN "*.hpp")
+install(DIRECTORY include/${PROJECT_NAME}/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+# install(DIRECTORY ${MSP_INCLUDE_DIR} DESTINATION include/ FILES_MATCHING PATTERN "*.hpp")
 
 SET(PKG_CONFIG_LIBDIR       "\${prefix}/lib")
 SET(PKG_CONFIG_INCLUDEDIR   "\${prefix}/include/")
@@ -158,12 +175,16 @@ if(BUILD_TESTS)
       include_directories("${gtest_SOURCE_DIR}/include")
     endif()
 
-    add_executable(value_test test/value_test.cpp)
+    cs_add_executable(value_test test/value_test.cpp)
     target_link_libraries(value_test gtest_main)
     add_test(NAME value_test COMMAND value_test)
 
-    add_executable(bytevector_test test/ByteVector_test.cpp)
+    cs_add_executable(bytevector_test test/ByteVector_test.cpp)
     target_link_libraries(bytevector_test gtest_main)
     add_test(NAME bytevector_test COMMAND bytevector_test)
 
 endif()
+
+# Finish
+cs_install()
+cs_export()

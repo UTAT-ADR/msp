@@ -1,4 +1,4 @@
-#include <Client.hpp>
+#include "msp/Client.hpp"
 #include <cstdlib>
 #include <iostream>
 
@@ -11,7 +11,7 @@ Client::Client() :
     port(io),
     log_level_(SILENT),
     msp_ver_(1),
-    fw_variant(FirmwareVariant::INAV) {}
+    fw_variant(FirmwareVariant::BAFL) {}
 
 Client::~Client() {}
 
